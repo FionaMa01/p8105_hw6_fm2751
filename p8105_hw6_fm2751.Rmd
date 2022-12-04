@@ -188,6 +188,10 @@ log_city_df %>%
   )
 ```
 
+_Comment_
+
+For the homicides solved comparing between male and female, this plot suggests that New York, NY has the lowest odds ratio (OR) whereas Albuquerque,NM has the highest OR, adjusting for victim age, sex, and race. In addition, Most cities have narrow 95% confidence intervals.
+
 
 ## Problem 3
 
@@ -206,4 +210,35 @@ birthweight = read.csv("./data/birthweight.csv") %>%
 head(birthweight)
 ```
 
+### Propose a regression model
+
+
+_Modeling rationale:_
+
+* Studies have shown that mother’s age at delivery (momage), mother’s weight at delivery (delwt), gestational age in weeks (gaweeks), genetic backgrounds - parents' races (frace, mrace), number of live births prior to this pregnancy (parity) could be factors that affect a baby's birth weight. 
+
+* There may be other factors also contribute to the birthweight, however, to make sure the power of my model, I will keep only these 6 factors.
+```{r}
+my_model = lm(bwt ~ momage + delwt + gaweeks + frace + mrace + parity, data = birthweight)
+
+my_model %>% 
+  broom::tidy() %>% 
+  knitr::kable(digits = 3)
+```
+
+### Plot model residuals against fitted values
+```{r}
+model_residuals = birthweight %>% 
+  add_predictions(my_model) %>% 
+  add_residuals(my_model) %>% 
+  ggplot(aes(x = pred, y = resid, color = resid)) + 
+  geom_point(alpha = 0.5) +
+  labs(
+    title = "Model residuals vs. fitted values",
+    x = "Fitted values",
+    y = "Model residuals"
+  )
+
+model_residuals
+```
 
