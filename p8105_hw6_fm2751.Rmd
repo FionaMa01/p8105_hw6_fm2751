@@ -27,9 +27,9 @@ scale_fill_discrete = scale_fill_viridis_d
 theme_set(theme_minimal() + theme(legend.position = "bottom"))
 ```
 
-### Problem 0
+## Problem 0
 
-Load libraries
+### Load libraries
 
 ```{r warning=FALSE, message=FALSE}
 library(tidyverse)
@@ -37,7 +37,7 @@ library(modelr)
 library(mgcv)
 ```
 
-### Problem 1
+## Problem 1
 
 To obtain a distribution for $\hat{r}^2$, we'll follow basically the same procedure we used for regression coefficients: draw bootstrap samples; the a model to each; extract the value I'm concerned with; and summarize. Here, we'll use `modelr::bootstrap` to draw the samples and `broom::glance` to produce `r.squared` values. 
 
@@ -93,5 +93,23 @@ As with $r^2$, this distribution is somewhat skewed and has some outliers.
 The point of this is not to say you should always use the bootstrap -- it's possible to establish "large sample" distributions for strange parameters / values / summaries in a lot of cases, and those are great to have. But it is helpful to know that there's a way to do inference even in tough cases. 
 
 
-### Problem 2
+## Problem 2
+
+### Import and clean the dataset, create new variables
+```{r warning=FALSE}
+homicide_data = read.csv("./data/homicide-data.csv")
+
+homicide = homicide_data %>% 
+  mutate(city_state = str_c(city,",",state)) %>% 
+  filter(!city_state %in% c("Dallas, TX", "Phoenix, AZ", "Kansas City, MO", "Tulsa, AL")) %>% 
+  filter(victim_race %in% c("White", "Black")) %>% 
+  mutate(
+    disposition_status = 
+      if_else(disposition %in% c("Closed with arrest", "Open/no arrest"), "unsolved", "solved"),
+    victim_age = as.numeric(victim_age))
+
+head(homicide)
+```
+
+
 
