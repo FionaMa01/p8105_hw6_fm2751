@@ -102,7 +102,7 @@ homicide_data = read.csv("./data/homicide-data.csv") %>% janitor::clean_names()
 homicide = homicide_data %>% 
   mutate(
     city_state = str_c(city,",",state),
-    solution_status = ifelse(disposition == "Closed by arrest","unsolved","solved")) %>% 
+    solution_status = ifelse(disposition == "Closed by arrest","solved","unsolved")) %>% 
    mutate(
       victim_sex = fct_relevel(victim_sex, "Female"),
       victim_race = fct_relevel(victim_race, "White"),
@@ -188,5 +188,6 @@ log_city_df %>%
     y = "Estimated OR"
   )
 ```
+
 
 
