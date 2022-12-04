@@ -97,18 +97,46 @@ The point of this is not to say you should always use the bootstrap -- it's poss
 
 ### Import and clean the dataset, create new variables
 ```{r warning=FALSE}
-homicide_data = read.csv("./data/homicide-data.csv")
+homicide_data = read.csv("./data/homicide-data.csv") %>% janitor::clean_names() 
 
 homicide = homicide_data %>% 
-  mutate(city_state = str_c(city,",",state)) %>% 
-  filter(!city_state %in% c("Dallas, TX", "Phoenix, AZ", "Kansas City, MO", "Tulsa, AL")) %>% 
-  filter(victim_race %in% c("White", "Black")) %>% 
   mutate(
-    disposition_status = 
-      if_else(disposition %in% c("Closed with arrest", "Open/no arrest"), "unsolved", "solved"),
-    victim_age = as.numeric(victim_age))
+    city_state = str_c(city,",",state),
+    solved = ifelse(disposition == "Closed by arrest",1,0)) %>% 
+   mutate(
+      victim_sex = fct_relevel(victim_sex, "Female"),
+      victim_race = fct_relevel(victim_race, "White"),
+         ) %>% 
+  filter(!city_state %in% c("Dallas, TX", "Phoenix, AZ", "Kansas City, MO", "Tulsa, AL")) %>% 
+  filter(victim_race == "White" | victim_race == "Black") %>%
+  mutate(victim_age = as.numeric(victim_age))
 
 head(homicide)
+```
+
+
+### logistic regression for Baltimore, estimate & 95CI
+```{r warning=FALSE}
+log_Baltimore = homicide %>% 
+  filter(city == "Baltimore") %>% 
+  glm(solved ~ victim_age + victim_sex + victim_race, data = ., family = binomial())
+
+log_Baltimore %>% 
+   broom::tidy() %>% 
+  knitr::kable(digits = 3)
+
+male_vs_female =
+log_Baltimore %>% 
+  broom::tidy() %>% 
+  mutate(
+    OR = exp(estimate),
+    CI_Lower = exp(estimate - 1.96*std.error),
+    CI_Upper = exp(estimate + 1.96*std.error)) %>%
+  select(term, estimate, OR, CI_Lower, CI_Upper) %>%
+  filter(term == "victim_sexMale")
+
+male_vs_female %>% 
+  knitr::kable(digits = 3)
 ```
 
 
