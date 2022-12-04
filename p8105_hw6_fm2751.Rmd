@@ -102,28 +102,30 @@ homicide_data = read.csv("./data/homicide-data.csv") %>% janitor::clean_names()
 homicide = homicide_data %>% 
   mutate(
     city_state = str_c(city,",",state),
-    solved = ifelse(disposition == "Closed by arrest",1,0)) %>% 
+    solution_status = ifelse(disposition == "Closed by arrest","unsolved","solved")) %>% 
    mutate(
       victim_sex = fct_relevel(victim_sex, "Female"),
       victim_race = fct_relevel(victim_race, "White"),
          ) %>% 
-  filter(!city_state %in% c("Dallas, TX", "Phoenix, AZ", "Kansas City, MO", "Tulsa, AL")) %>% 
-  filter(victim_race == "White" | victim_race == "Black") %>%
+  filter(!city_state %in% c("Dallas, TX", "Phoenix, AZ", "Kansas City, MO", "Tulsa,AL"),
+         victim_race == "White" | victim_race == "Black") %>%
   mutate(victim_age = as.numeric(victim_age))
 
 head(homicide)
 ```
 
-
 ### logistic regression for Baltimore, estimate & 95CI
 ```{r warning=FALSE}
 log_Baltimore = homicide %>% 
   filter(city == "Baltimore") %>% 
-  glm(solved ~ victim_age + victim_sex + victim_race, data = ., family = binomial())
+  mutate(solution_status = fct_relevel(solution_status,"solved")) %>% 
+  glm(solution_status ~ victim_age + victim_sex + victim_race, data = ., family = binomial())
 
 log_Baltimore %>% 
    broom::tidy() %>% 
   knitr::kable(digits = 3)
+
+save(log_Baltimore, file = "./result/log_Baltimore.RData")
 
 male_vs_female =
 log_Baltimore %>% 
@@ -137,6 +139,38 @@ log_Baltimore %>%
 
 male_vs_female %>% 
   knitr::kable(digits = 3)
+```
+
+### logistic regression for all cities
+```{r}
+city_df = 
+  homicide %>% 
+  group_by(city_state) %>% 
+  mutate(
+    solution_status = ifelse(solution_status == "solved", 1, 0),
+    victim_sex = fct_relevel(victim_sex, "Female"),
+    victim_race = fct_relevel(victim_race, "White"),
+  ) %>% 
+  select(city_state, solution_status, victim_age, victim_sex, victim_race) %>% 
+  drop_na()
+
+log_city_df =
+  city_df %>%
+  nest(data = -city_state) %>% 
+  mutate(
+    glm_cities = map(.x = data, ~glm(solution_status ~ victim_age + victim_sex + victim_race, data = .x, family = binomial())),
+ tidy_output = map(.x = glm_cities, ~broom::tidy(.x))) %>% 
+  select(city_state, tidy_output) %>% 
+  unnest(tidy_output) %>% 
+  mutate(
+    OR = exp(estimate),
+    CI_Lower = exp(estimate - 1.96*std.error),
+    CI_Upper = exp(estimate + 1.96*std.error)) %>%
+  filter(term == "victim_sexMale") %>% 
+  select(city_state, OR, CI_Lower, CI_Upper)
+
+log_city_df %>% 
+  knitr::kable()
 ```
 
 
